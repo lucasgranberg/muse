@@ -1,15 +1,16 @@
-import {AutocompleteInteraction, ChatInputCommandInteraction} from 'discord.js';
-import {URL} from 'url';
-import {SlashCommandBuilder} from '@discordjs/builders';
-import {inject, injectable} from 'inversify';
+import { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js';
+import { URL } from 'url';
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { inject, injectable } from 'inversify';
 import Spotify from 'spotify-web-api-node';
 import Command from '.';
-import {TYPES} from '../types.js';
+import { TYPES } from '../types.js';
 import ThirdParty from '../services/third-party.js';
 import getYouTubeAndSpotifySuggestionsFor from '../utils/get-youtube-and-spotify-suggestions-for.js';
 import KeyValueCacheProvider from '../services/key-value-cache.js';
-import {ONE_HOUR_IN_SECONDS} from '../utils/constants.js';
+import { ONE_HOUR_IN_SECONDS } from '../utils/constants.js';
 import AddQueryToQueue from '../services/add-query-to-queue.js';
+import { EmbedBuilder } from 'discord.js';
 
 @injectable()
 export default class implements Command {
@@ -45,14 +46,24 @@ export default class implements Command {
 
   public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const query = interaction.options.getString('query')!;
+    if (interaction.user.displayName == "Gorbatjorven" || interaction.user.id == "233249721882247168") {
+      const message = new EmbedBuilder();
+      message
+        .setColor('DarkRed')
+        .setTitle('Linux är bra');
+      await interaction.reply({
+        embeds: [message],
+      });
+    } else {
+      await this.addQueryToQueue.addToQueue({
+        interaction,
+        query: query.trim(),
+        addToFrontOfQueue: interaction.options.getBoolean('immediate') ?? false,
+        shuffleAdditions: interaction.options.getBoolean('shuffle') ?? false,
+        shouldSplitChapters: interaction.options.getBoolean('split') ?? false,
+      });
 
-    await this.addQueryToQueue.addToQueue({
-      interaction,
-      query: query.trim(),
-      addToFrontOfQueue: interaction.options.getBoolean('immediate') ?? false,
-      shuffleAdditions: interaction.options.getBoolean('shuffle') ?? false,
-      shouldSplitChapters: interaction.options.getBoolean('split') ?? false,
-    });
+    }
   }
 
   public async handleAutocompleteInteraction(interaction: AutocompleteInteraction): Promise<void> {
@@ -69,7 +80,7 @@ export default class implements Command {
       new URL(query);
       await interaction.respond([]);
       return;
-    } catch {}
+    } catch { }
 
     const suggestions = await this.cache.wrap(
       getYouTubeAndSpotifySuggestionsFor,
